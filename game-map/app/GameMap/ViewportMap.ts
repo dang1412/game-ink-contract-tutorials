@@ -10,7 +10,7 @@ export class ViewportMap {
   renderer: Renderer
   container: Container
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(private canvas: HTMLCanvasElement) {
     console.log('ViewportMap')
     const renderer = this.renderer = new Renderer({
       width: 800,
@@ -43,19 +43,41 @@ export class ViewportMap {
         friction: 0.95
       })
       .wheel()
-      .clamp({direction: 'all'})
+      // .clamp({direction: 'all'})
       .clampZoom({minScale: 0.5, maxScale: 3})
 
-    for (const [x, y] of [[200,200], [500, 500], [200, 500], [500, 200]]) {
+    for (const [x, y] of [[160,160], [600, 600], [160, 600], [600, 160]]) {
       const rect = new Graphics()
       rect.beginFill('green')
-      rect.drawRect(x, y, 100, 100)
+      rect.drawRect(x, y, 120, 120)
       rect.endFill()
       this.container.addChild(rect)
     }
 
     this.drawGrid()
     this.runUpdate()
+
+    this.viewport.on('clicked', (e) => {
+      console.log('clicked', e.screen, e.world)
+    })
+
+    this.viewport.on('drag-start', (e) => {
+      console.log('drag-start', e.screen, e.world)
+    })
+
+    this.viewport.on('drag-end', (e) => {
+      console.log('drag-end', e.screen, e.world)
+      const { width, height, worldHeight, worldWidth, x, y, screenHeight, screenWidth, screenHeightInWorldPixels, screenWidthInWorldPixels } = this.viewport
+      console.log(width, height, worldHeight, worldWidth, x, y, screenHeight, screenWidth, screenHeightInWorldPixels, screenWidthInWorldPixels)
+    })
+
+    this.canvas.addEventListener('mousedown', (e) => {
+      const screenX = e.pageX - this.canvas.offsetLeft
+      const screenY = e.pageY - this.canvas.offsetTop
+      console.log(screenX, screenY)
+
+      // continue calculate pixelX, pixelY follow the above formula
+    })
   }
 
   private runUpdate() {
