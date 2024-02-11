@@ -35,6 +35,11 @@ export class ViewportMap {
     this.init()
   }
 
+  resize(w: number, h: number) {
+    this.renderer.resize(w, h)
+    this.viewport.resize(w, h)
+  }
+
   private init() {
     this.viewport
       .drag()
@@ -77,6 +82,11 @@ export class ViewportMap {
       console.log(screenX, screenY)
 
       // continue calculate pixelX, pixelY follow the above formula
+      const scaled = this.viewport.scaled
+      const worldX = (screenX - this.viewport.x) / scaled
+      const worldY = (screenY - this.viewport.y) / scaled
+
+      console.log('Pixel xy', Math.floor(worldX / PIXEL_SIZE), Math.floor(worldY / PIXEL_SIZE))
     })
   }
 
