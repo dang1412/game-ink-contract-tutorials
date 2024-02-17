@@ -180,6 +180,7 @@ Sử dụng [event `clicked`](https://davidfig.github.io/pixi-viewport/jsdoc/Vie
 ```ts
 this.viewport.on('clicked', (e) => {
   console.log('Screen and world:', e.screen, e.world)
+  console.log('Pixel xy', Math.floor(e.world.x / PIXEL_SIZE), Math.floor(e.world.y / PIXEL_SIZE))
 })
 ```
 
@@ -196,7 +197,7 @@ Công thức
 (tọa độ pixel) = (tọa độ world) / PixelSize
 ```
 
-Trong trường hợp `mousedown`, `mousemove` để select trên map viewport ko hỗ trợ trực tiếp ta sử dụng event trên canvas
+Trong trường hợp cần xử lý event `mousedown` và `mousemove` để select trên map mà viewport ko hỗ trợ, ta sử dụng trực tiếp event trên canvas.
 
 ```ts
 this.canvas.addEventListener('mousedown', (e) => {
@@ -205,9 +206,63 @@ this.canvas.addEventListener('mousedown', (e) => {
   console.log(screenX, screenY)
 
   // continue calculate pixelX, pixelY follow the above formula
+  const worldX = (screenX - this.viewport.x) / this.viewport.scaled
+  const worldY = (screenY - this.viewport.y) / this.viewport.scaled
+
+  console.log('Pixel xy', Math.floor(worldX / PIXEL_SIZE), Math.floor(worldY / PIXEL_SIZE))
 })
 ```
 
 ## Fullscreen
 
+Đầu tiên để thay đổi kích thước ta cần thông báo cho pixi (renderer) và viewport sự thay đổi
+
+```ts
+resize(w: number, h: number) {
+  this.renderer.resize(w, h)
+  this.viewport.resize(w, h)
+}
+```
+
+Về phía react ta quan sát sự thay đổi kích thước của canvas sử dụng `ResizeObserver` và gọi hàm resize của map
+
+```tsx
+const vpmap = new ViewportMap(c)
+
+// Create an instance of ResizeObserver
+const resizeObserver = new ResizeObserver(entries => {
+  for (let entry of entries) {
+    // adjust the canvas size since we only watch canvas
+    const { width, height } = entry.contentRect
+    vpmap.resize(width, height)
+  }
+})
+
+resizeObserver.observe(c)
+```
+
+Để cho canvas mở rộng toàn màn hình dùng class `fullscreen`
+
+```css
+.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+```
+
+Ngoài ra ta cũng có thể dùng api [`requestFullscreen`](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen) của phần tử DOM được hỗ trợ bởi browser.
+
+Code đầy đủ [react component](https://github.com/dang1412/game-ink-contract-tutorials/blob/main/game-map/app/GameMap/GameMap.tsx)
+
 ## Minimap
+
+Trong phần này ta sẽ tạo 1 minimap ở góc trên bên trái bản đồ, có nhiệm vụ hiển thị toàn bộ bản đồ dạng thu nhỏ và vị trí view hiện tại.
+
+Chúng ta sẽ refactor cấu trúc của map 1 chút, tạo thêm 1 container `wrapper` để chứa `viewport` và `minimap container`
+
+- `wrapper`: Pixi trực tiếp render container này, bao gồm
+  - `viewport`: toàn bộ các thành phần trên bản đồ có thể zoom và pan.
+  - `mapContainer`: chứa minimap vẽ lại nội dung của viewport dạng thu nhỏ (không ảnh hưởng bởi zoom và pan viewport).

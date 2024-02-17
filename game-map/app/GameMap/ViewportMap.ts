@@ -1,5 +1,6 @@
 import { Container, Graphics, Renderer } from 'pixi.js'
 import { Viewport } from 'pixi-viewport'
+import { Minimap } from './Minimap'
 
 const WORLD_WIDTH = 800
 const WORLD_HEIGHT = 800
@@ -9,6 +10,9 @@ export class ViewportMap {
   viewport: Viewport
   renderer: Renderer
   container: Container
+
+  wrapper: Container
+  minimap: Minimap
 
   constructor(private canvas: HTMLCanvasElement) {
     console.log('ViewportMap')
@@ -32,7 +36,19 @@ export class ViewportMap {
     const container = this.container = new Container()
     this.viewport.addChild(container)
 
+    this.wrapper = new Container()
+    this.minimap = new Minimap(renderer)
+    this.minimap.container.position.set(10, 10)
+
+    this.wrapper.addChild(this.viewport)
+    this.wrapper.addChild(this.minimap.container)
+
     this.init()
+  }
+
+  updateMinimap() {
+    const { top, left, worldScreenWidth, worldScreenHeight, worldWidth, worldHeight } = this.viewport
+    this.minimap.update(worldWidth, worldHeight, top, left, worldScreenWidth, worldScreenHeight, this.container)
   }
 
   resize(w: number, h: number) {
@@ -59,12 +75,16 @@ export class ViewportMap {
       this.container.addChild(rect)
     }
 
+    this.updateMinimap()
     this.drawGrid()
     this.runUpdate()
 
     this.viewport.on('clicked', (e) => {
       console.log('clicked', e.screen, e.world)
     })
+
+    this.viewport.on('zoomed', () => this.updateMinimap())
+    this.viewport.on('moved', () => this.updateMinimap())
 
     this.viewport.on('drag-start', (e) => {
       console.log('drag-start', e.screen, e.world)
@@ -92,7 +112,7 @@ export class ViewportMap {
 
   private runUpdate() {
     if (this.viewport.dirty) {
-      this.renderer.render(this.viewport)
+      this.renderer.render(this.wrapper)
       this.viewport.dirty = false
     }
 
@@ -101,7 +121,7 @@ export class ViewportMap {
 
   private drawGrid() {
     const g = new Graphics()
-    this.container.addChild(g)
+    this.viewport.addChild(g)
     g.lineStyle(1, 0x888888, 0.4, undefined, true)
 
     const pixelWidth = WORLD_WIDTH / PIXEL_SIZE
